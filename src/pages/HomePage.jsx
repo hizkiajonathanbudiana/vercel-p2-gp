@@ -1,7 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useSocket } from "../contexts/SocketContext";
-
 import { logoutUser } from "../features/authSlice";
 
 const AdminControlPanel = () => {
@@ -23,44 +22,78 @@ const AdminControlPanel = () => {
   };
 
   return (
-    <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800 relative overflow-hidden">
-      <h2 className="text-xl font-bold mb-4 border-b border-purple-700 pb-2 text-yellow-400">
+    <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+      <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2 text-yellow-400">
         Admin Controls
       </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {["topic", "rarity", "language"].map((field) => (
-          <div key={field}>
-            <label
-              htmlFor={field}
-              className="block text-sm font-medium text-gray-300"
-            >
-              {field.charAt(0).toUpperCase() + field.slice(1)}
-            </label>
-            <input
-              type="text"
-              id={field}
-              name={field}
-              value={settings[field] || ""}
-              onChange={handleChange}
-              className="mt-1 w-full p-2 bg-[#2a2a40] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white"
-            />
-          </div>
-        ))}
+        <div>
+          <label
+            htmlFor="topic"
+            className="block text-sm font-medium text-gray-300"
+          >
+            Topic
+          </label>
+          <input
+            type="text"
+            id="topic"
+            name="topic"
+            value={settings.topic}
+            onChange={handleChange}
+            className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="rarity"
+            className="block text-sm font-medium text-gray-300"
+          >
+            Difficulty
+          </label>
+          <input
+            type="text"
+            id="rarity"
+            name="rarity"
+            value={settings.rarity}
+            onChange={handleChange}
+            className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="language"
+            className="block text-sm font-medium text-gray-300"
+          >
+            Language
+          </label>
+          <input
+            type="text"
+            id="language"
+            name="language"
+            value={settings.language}
+            onChange={handleChange}
+            className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500"
+          />
+        </div>
         <button
           type="submit"
-          className="w-full px-4 py-2 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:brightness-110 rounded-md font-semibold text-white"
+          className="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-md transition-colors font-semibold"
         >
-          Apply Settings
+          Apply Settings & New Round
         </button>
       </form>
     </div>
   );
 };
 
+// --- Komponen Utama Halaman ---
 export default function HomePage() {
   const { user } = useSelector((state) => state.app);
   const dispatch = useDispatch();
   const socketContext = useSocket();
+
+  // [AUTO-SCROLL] 1. Buat Ref untuk chat container
+  const chatContainerRef = useRef(null);
 
   if (!socketContext) {
     return (
@@ -92,6 +125,14 @@ export default function HomePage() {
     return me?.solved ?? 0;
   }, [onlinePlayers, user?.id]);
 
+  // [AUTO-SCROLL] 2. Buat Effect yang berjalan saat chatHistory berubah
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      const chatContainer = chatContainerRef.current;
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+  }, [chatHistory]);
+
   const handleAnswerSubmit = (e) => {
     e.preventDefault();
     if (answer.trim()) {
@@ -113,14 +154,12 @@ export default function HomePage() {
     requiredVotes > 0 ? (voteState.currentVotes / requiredVotes) * 100 : 0;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white px-4 py-8 font-orbitron">
+    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 lg:p-8 font-sans">
       <div className="max-w-7xl mx-auto">
         <header className="flex justify-between items-center mb-6 pb-4 border-b border-gray-700">
           <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-widest drop-shadow-lg">
-              🚀 QuizRush.AI
-            </h1>
-            <p className="text-gray-300">
+            <h1 className="text-3xl font-bold text-indigo-400">QuizRush.AI</h1>
+            <p className="text-gray-400">
               Welcome,{" "}
               <span className="font-semibold text-white">{user?.username}</span>
               {user?.role === "admin" && (
@@ -148,68 +187,99 @@ export default function HomePage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <main className="lg:col-span-2 bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800">
-            {notification && (
-              <div className="bg-yellow-500/20 border border-yellow-400 text-yellow-300 px-4 py-3 rounded-lg mb-4 text-center">
-                <p>{notification}</p>
-              </div>
-            )}
-            <div className="mb-6 text-center bg-[#2a2a40] p-6 rounded-lg min-h-[150px] flex items-center justify-center">
-              {currentQuestion ? (
-                <p className="text-2xl lg:text-3xl font-semibold leading-relaxed">
-                  {currentQuestion}
-                </p>
-              ) : (
-                <p className="text-xl text-gray-500">
-                  {isConnected
-                    ? "Waiting for the next question..."
-                    : "Connecting..."}
-                </p>
+          {/* [LAYOUT] Main content area sekarang menampung Question, Answer, dan Live Chat */}
+          <main className="lg:col-span-2 flex flex-col gap-6">
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg flex-grow flex flex-col">
+              {notification && (
+                <div className="bg-yellow-500/20 border border-yellow-400 text-yellow-300 px-4 py-3 rounded-lg mb-4 text-center">
+                  <p>{notification}</p>
+                </div>
               )}
+
+              <div className="mb-6 text-center bg-gray-900 p-6 rounded-lg min-h-[150px] flex items-center justify-center">
+                {currentQuestion ? (
+                  <p className="text-2xl lg:text-3xl font-semibold leading-relaxed">
+                    {currentQuestion}
+                  </p>
+                ) : (
+                  <p className="text-xl text-gray-500">
+                    {isConnected
+                      ? "Waiting for the next question..."
+                      : "Connecting..."}
+                  </p>
+                )}
+              </div>
+
+              <form onSubmit={handleAnswerSubmit} className="mb-6">
+                <input
+                  type="text"
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  placeholder="Type your answer here and press Enter..."
+                  className="w-full p-4 bg-gray-700 border border-gray-600 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  disabled={!isConnected || !currentQuestion}
+                />
+              </form>
+
+              {/* [LAYOUT] Live Chat dipindahkan ke sini */}
+              <div className="flex-grow flex flex-col min-h-0">
+                <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
+                  Live Chat{" "}
+                  <span className="text-sm font-normal text-gray-400">
+                    (Wrong Answers)
+                  </span>
+                </h2>
+                {/* [AUTO-SCROLL] 3. Pasang Ref ke container chat */}
+                <div
+                  ref={chatContainerRef}
+                  className="space-y-3 flex-grow overflow-y-auto pr-2"
+                >
+                  {chatHistory.map((chat, index) => (
+                    <div key={index}>
+                      <span className="font-bold text-indigo-400">
+                        {chat.username}:{" "}
+                      </span>
+                      <span className="text-gray-300 break-words">
+                        {chat.message}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <form onSubmit={handleAnswerSubmit}>
-              <input
-                type="text"
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder="Type your answer here and press Enter..."
-                className="w-full p-4 bg-[#2a2a40] border border-gray-600 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white"
-                disabled={!isConnected || !currentQuestion}
-              />
-            </form>
           </main>
 
+          {/* [LAYOUT] Sidebar sekarang hanya berisi panel-panel info & kontrol */}
           <aside className="space-y-6">
             {user?.role === "admin" && <AdminControlPanel />}
-
-            <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800">
-              <h2 className="text-xl font-bold mb-3 border-b border-purple-700 pb-2">
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2 className="text-xl font-bold mb-3 border-b border-gray-700 pb-2">
                 Game Info
               </h2>
               <div className="space-y-2 text-sm">
                 <p>
                   <strong>Topic:</strong>{" "}
-                  <span className="text-cyan-300">{gameSettings.topic}</span>
+                  <span className="text-indigo-300">{gameSettings.topic}</span>
                 </p>
                 <p>
                   <strong>Difficulty:</strong>{" "}
-                  <span className="text-cyan-300">{gameSettings.rarity}</span>
+                  <span className="text-indigo-300">{gameSettings.rarity}</span>
                 </p>
                 <p>
                   <strong>Language:</strong>{" "}
-                  <span className="text-cyan-300">{gameSettings.language}</span>
+                  <span className="text-indigo-300">
+                    {gameSettings.language}
+                  </span>
                 </p>
               </div>
             </div>
-
-            <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800">
-              <h2 className="text-xl font-bold mb-4 border-b border-purple-700 pb-2">
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
                 Vote to Skip
               </h2>
               <div className="space-y-3">
                 <p className="text-sm text-gray-400">
-                  Need a new question? If 50% of players vote, the round will
-                  restart.
+                  If 50% of players vote, the round will restart.
                 </p>
                 <div>
                   <div className="flex justify-between items-center mb-1">
@@ -230,15 +300,14 @@ export default function HomePage() {
                 <button
                   onClick={handleVoteClick}
                   disabled={!isConnected || !currentQuestion}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 hover:brightness-110 rounded-md transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
                 >
                   Vote to Skip Question
                 </button>
               </div>
             </div>
-
-            <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800">
-              <h2 className="text-xl font-bold mb-4 border-b border-purple-700 pb-2">
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
                 Online Players ({onlinePlayers.length})
               </h2>
               <ul className="space-y-2 max-h-40 overflow-y-auto">
@@ -258,27 +327,9 @@ export default function HomePage() {
                 ))}
               </ul>
             </div>
-
-            <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800">
-              <h2 className="text-xl font-bold mb-4 border-b border-purple-700 pb-2">
-                Live Chat (Wrong Answers)
-              </h2>
-              <div className="space-y-3 h-64 overflow-y-auto pr-2">
-                {chatHistory.map((chat, index) => (
-                  <div key={index}>
-                    <span className="font-bold text-cyan-400">
-                      {chat.username}:{" "}
-                    </span>
-                    <span className="text-gray-300 break-all">
-                      {chat.message}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </aside>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
