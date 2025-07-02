@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useSocket } from "../contexts/SocketContext";
+
 import { logoutUser } from "../features/authSlice";
 
 const AdminControlPanel = () => {
@@ -79,21 +80,17 @@ const AdminControlPanel = () => {
           type="submit"
           className="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-md transition-colors font-semibold"
         >
-          Apply Settings & New Round
+          Apply Settings
         </button>
       </form>
     </div>
   );
 };
 
-// --- Komponen Utama Halaman ---
 export default function HomePage() {
   const { user } = useSelector((state) => state.app);
   const dispatch = useDispatch();
   const socketContext = useSocket();
-
-  // [AUTO-SCROLL] 1. Buat Ref untuk chat container
-  const chatContainerRef = useRef(null);
 
   if (!socketContext) {
     return (
@@ -124,14 +121,6 @@ export default function HomePage() {
     const me = onlinePlayers.find((p) => p.id === user?.id);
     return me?.solved ?? 0;
   }, [onlinePlayers, user?.id]);
-
-  // [AUTO-SCROLL] 2. Buat Effect yang berjalan saat chatHistory berubah
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      const chatContainer = chatContainerRef.current;
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-  }, [chatHistory]);
 
   const handleAnswerSubmit = (e) => {
     e.preventDefault();
@@ -187,71 +176,40 @@ export default function HomePage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* [LAYOUT] Main content area sekarang menampung Question, Answer, dan Live Chat */}
-          <main className="lg:col-span-2 flex flex-col gap-6">
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg flex-grow flex flex-col">
-              {notification && (
-                <div className="bg-yellow-500/20 border border-yellow-400 text-yellow-300 px-4 py-3 rounded-lg mb-4 text-center">
-                  <p>{notification}</p>
-                </div>
+          <main className="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-lg">
+            {notification && (
+              <div className="bg-yellow-500/20 border border-yellow-400 text-yellow-300 px-4 py-3 rounded-lg mb-4 text-center">
+                <p>{notification}</p>
+              </div>
+            )}
+            <div className="mb-6 text-center bg-gray-900 p-6 rounded-lg min-h-[150px] flex items-center justify-center">
+              {currentQuestion ? (
+                <p className="text-2xl lg:text-3xl font-semibold leading-relaxed">
+                  {currentQuestion}
+                </p>
+              ) : (
+                <p className="text-xl text-gray-500">
+                  {isConnected
+                    ? "Waiting for the next question..."
+                    : "Connecting..."}
+                </p>
               )}
-
-              <div className="mb-6 text-center bg-gray-900 p-6 rounded-lg min-h-[150px] flex items-center justify-center">
-                {currentQuestion ? (
-                  <p className="text-2xl lg:text-3xl font-semibold leading-relaxed">
-                    {currentQuestion}
-                  </p>
-                ) : (
-                  <p className="text-xl text-gray-500">
-                    {isConnected
-                      ? "Waiting for the next question..."
-                      : "Connecting..."}
-                  </p>
-                )}
-              </div>
-
-              <form onSubmit={handleAnswerSubmit} className="mb-6">
-                <input
-                  type="text"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  placeholder="Type your answer here and press Enter..."
-                  className="w-full p-4 bg-gray-700 border border-gray-600 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  disabled={!isConnected || !currentQuestion}
-                />
-              </form>
-
-              {/* [LAYOUT] Live Chat dipindahkan ke sini */}
-              <div className="flex-grow flex flex-col min-h-0">
-                <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
-                  Live Chat{" "}
-                  <span className="text-sm font-normal text-gray-400">
-                    (Wrong Answers)
-                  </span>
-                </h2>
-                {/* [AUTO-SCROLL] 3. Pasang Ref ke container chat */}
-                <div
-                  ref={chatContainerRef}
-                  className="space-y-3 flex-grow overflow-y-auto pr-2"
-                >
-                  {chatHistory.map((chat, index) => (
-                    <div key={index}>
-                      <span className="font-bold text-indigo-400">
-                        {chat.username}:{" "}
-                      </span>
-                      <span className="text-gray-300 break-words">
-                        {chat.message}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
+            <form onSubmit={handleAnswerSubmit}>
+              <input
+                type="text"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                placeholder="Type your answer here and press Enter..."
+                className="w-full p-4 bg-gray-700 border border-gray-600 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={!isConnected || !currentQuestion}
+              />
+            </form>
           </main>
 
-          {/* [LAYOUT] Sidebar sekarang hanya berisi panel-panel info & kontrol */}
           <aside className="space-y-6">
             {user?.role === "admin" && <AdminControlPanel />}
+
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
               <h2 className="text-xl font-bold mb-3 border-b border-gray-700 pb-2">
                 Game Info
@@ -273,13 +231,15 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
+
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
               <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
                 Vote to Skip
               </h2>
               <div className="space-y-3">
                 <p className="text-sm text-gray-400">
-                  If 50% of players vote, the round will restart.
+                  Need a new question? If 50% of players vote, the round will
+                  restart.
                 </p>
                 <div>
                   <div className="flex justify-between items-center mb-1">
@@ -306,6 +266,7 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
+
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
               <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
                 Online Players ({onlinePlayers.length})
@@ -326,6 +287,24 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+              <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
+                Live Chat (Wrong Answers)
+              </h2>
+              <div className="space-y-3 h-64 overflow-y-auto pr-2">
+                {chatHistory.map((chat, index) => (
+                  <div key={index}>
+                    <span className="font-bold text-indigo-400">
+                      {chat.username}:{" "}
+                    </span>
+                    <span className="text-gray-300 break-all">
+                      {chat.message}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </aside>
         </div>
