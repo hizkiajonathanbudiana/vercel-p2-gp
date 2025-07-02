@@ -1,8 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useSocket } from "../contexts/SocketContext";
-
-import { logoutUser } from "../features/authSlice";
+import { logoutUser } from "../features/authSlice.js"; // Pastikan path ini benar
 
 const AdminControlPanel = () => {
   const { gameSettings, adminUpdateSettings } = useSocket();
@@ -80,7 +79,7 @@ const AdminControlPanel = () => {
           type="submit"
           className="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-md transition-colors font-semibold"
         >
-          Apply Settings
+          Apply Settings & New Round
         </button>
       </form>
     </div>
@@ -91,6 +90,9 @@ export default function HomePage() {
   const { user } = useSelector((state) => state.app);
   const dispatch = useDispatch();
   const socketContext = useSocket();
+
+  // [AUTO-SCROLL] 1. Buat Ref untuk chat container
+  const chatContainerRef = useRef(null);
 
   if (!socketContext) {
     return (
@@ -108,7 +110,6 @@ export default function HomePage() {
     currentQuestion,
     notification,
     chatHistory,
-    onlinePlayers,
     submitAnswer,
     voteState,
     voteForNewQuestion,
@@ -117,10 +118,13 @@ export default function HomePage() {
 
   const [answer, setAnswer] = useState("");
 
-  const myScore = useMemo(() => {
-    const me = onlinePlayers.find((p) => p.id === user?.id);
-    return me?.solved ?? 0;
-  }, [onlinePlayers, user?.id]);
+  // [AUTO-SCROLL] 2. Buat Effect yang berjalan saat chatHistory berubah
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      const chatContainer = chatContainerRef.current;
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+  }, [chatHistory]);
 
   const handleAnswerSubmit = (e) => {
     e.preventDefault();
@@ -156,19 +160,23 @@ export default function HomePage() {
               )}
             </p>
           </div>
-          <div className="text-right">
+          <div className="flex items-center gap-4">
             <p className="font-semibold">
               Status:{" "}
               <span className={isConnected ? "text-green-400" : "text-red-400"}>
                 {isConnected ? "Connected" : "Disconnected"}
               </span>
             </p>
-            <p className="font-semibold">
-              Solved: <span className="text-green-400">{myScore}</span>
-            </p>
+            {/* [DIHAPUS] Tampilan skor dihapus */}
+            <a
+              href="/rank"
+              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 rounded-md text-sm font-semibold transition-colors"
+            >
+              Leaderboard
+            </a>
             <button
               onClick={handleLogout}
-              className="mt-2 px-3 py-1 bg-red-600 hover:bg-red-700 rounded-md text-sm transition-colors"
+              className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded-md text-sm transition-colors"
             >
               Logout
             </button>
@@ -176,40 +184,71 @@ export default function HomePage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <main className="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-lg">
-            {notification && (
-              <div className="bg-yellow-500/20 border border-yellow-400 text-yellow-300 px-4 py-3 rounded-lg mb-4 text-center">
-                <p>{notification}</p>
-              </div>
-            )}
-            <div className="mb-6 text-center bg-gray-900 p-6 rounded-lg min-h-[150px] flex items-center justify-center">
-              {currentQuestion ? (
-                <p className="text-2xl lg:text-3xl font-semibold leading-relaxed">
-                  {currentQuestion}
-                </p>
-              ) : (
-                <p className="text-xl text-gray-500">
-                  {isConnected
-                    ? "Waiting for the next question..."
-                    : "Connecting..."}
-                </p>
+          {/* [LAYOUT] Main content area sekarang menampung Question, Answer, dan Live Chat */}
+          <main className="lg:col-span-2 flex flex-col gap-6">
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg flex-grow flex flex-col">
+              {notification && (
+                <div className="bg-yellow-500/20 border border-yellow-400 text-yellow-300 px-4 py-3 rounded-lg mb-4 text-center">
+                  <p>{notification}</p>
+                </div>
               )}
+
+              <div className="mb-6 text-center bg-gray-900 p-6 rounded-lg min-h-[150px] flex items-center justify-center">
+                {currentQuestion ? (
+                  <p className="text-2xl lg:text-3xl font-semibold leading-relaxed">
+                    {currentQuestion}
+                  </p>
+                ) : (
+                  <p className="text-xl text-gray-500">
+                    {isConnected
+                      ? "Waiting for the next question..."
+                      : "Connecting..."}
+                  </p>
+                )}
+              </div>
+
+              <form onSubmit={handleAnswerSubmit} className="mb-6">
+                <input
+                  type="text"
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  placeholder="Type your answer here and press Enter..."
+                  className="w-full p-4 bg-gray-700 border border-gray-600 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  disabled={!isConnected || !currentQuestion}
+                />
+              </form>
+
+              {/* [LAYOUT] Live Chat dipindahkan ke sini */}
+              <div className="flex-grow flex flex-col min-h-0">
+                <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
+                  Live Chat{" "}
+                  <span className="text-sm font-normal text-gray-400">
+                    (Wrong Answers)
+                  </span>
+                </h2>
+                {/* [AUTO-SCROLL] 3. Pasang Ref ke container chat */}
+                <div
+                  ref={chatContainerRef}
+                  className="space-y-3 flex-grow overflow-y-auto pr-2"
+                >
+                  {chatHistory.map((chat, index) => (
+                    <div key={index}>
+                      <span className="font-bold text-indigo-400">
+                        {chat.username}:{" "}
+                      </span>
+                      <span className="text-gray-300 break-words">
+                        {chat.message}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <form onSubmit={handleAnswerSubmit}>
-              <input
-                type="text"
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder="Type your answer here and press Enter..."
-                className="w-full p-4 bg-gray-700 border border-gray-600 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                disabled={!isConnected || !currentQuestion}
-              />
-            </form>
           </main>
 
+          {/* [LAYOUT] Sidebar sekarang hanya berisi panel-panel info & kontrol */}
           <aside className="space-y-6">
             {user?.role === "admin" && <AdminControlPanel />}
-
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
               <h2 className="text-xl font-bold mb-3 border-b border-gray-700 pb-2">
                 Game Info
@@ -231,15 +270,13 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
               <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
                 Vote to Skip
               </h2>
               <div className="space-y-3">
                 <p className="text-sm text-gray-400">
-                  Need a new question? If 50% of players vote, the round will
-                  restart.
+                  If 50% of players vote, the round will restart.
                 </p>
                 <div>
                   <div className="flex justify-between items-center mb-1">
@@ -266,10 +303,9 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
-
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
               <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
-                Online Players ({onlinePlayers.length})
+                Online Players
               </h2>
               <ul className="space-y-2 max-h-40 overflow-y-auto">
                 {onlinePlayers.map((player) => (
@@ -287,24 +323,6 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-            </div>
-
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-              <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
-                Live Chat (Wrong Answers)
-              </h2>
-              <div className="space-y-3 h-64 overflow-y-auto pr-2">
-                {chatHistory.map((chat, index) => (
-                  <div key={index}>
-                    <span className="font-bold text-indigo-400">
-                      {chat.username}:{" "}
-                    </span>
-                    <span className="text-gray-300 break-all">
-                      {chat.message}
-                    </span>
-                  </div>
-                ))}
-              </div>
             </div>
           </aside>
         </div>
