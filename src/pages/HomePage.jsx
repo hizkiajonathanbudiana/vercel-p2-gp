@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useSocket } from "../contexts/SocketContext";
-import { logoutUser } from "../features/authSlice"; // CORRECTED: Path restored as per your code
+import { logoutUser } from "../features/authSlice";
 
 // --- Admin Control Panel Component ---
 const AdminControlPanel = () => {
@@ -148,7 +148,7 @@ export default function HomePage() {
     requiredVotes > 0 ? (voteState.currentVotes / requiredVotes) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white px-4 py-8 font-orbitron">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white px-4 sm:px-6 lg:px-8 py-8 font-orbitron">
       <div className="max-w-7xl mx-auto">
         <header className="flex justify-between items-center mb-8 pb-4 border-b border-purple-800/50">
           <div>
@@ -245,8 +245,12 @@ export default function HomePage() {
             </div>
           </main>
 
-          <aside className="space-y-8 lg:sticky lg:top-8 self-start">
-            <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800">
+          {/* [IMPROVED LAYOUT] Sidebar now has a fixed top panel and a scrollable bottom area */}
+          <aside
+            className="lg:sticky lg:top-8 self-start flex flex-col gap-8"
+            style={{ maxHeight: "calc(100vh - 4rem)" }}
+          >
+            <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800 flex-shrink-0">
               <h2 className="text-xl font-bold mb-4 border-b border-purple-700 pb-2">
                 Online Players ({onlinePlayers.length})
               </h2>
@@ -258,7 +262,7 @@ export default function HomePage() {
                   >
                     <span>
                       {player.username}
-                      {player.role === "admin" && " 👑"}
+                      {player.role === "admin" && " �"}
                     </span>
                     <span className="font-semibold text-green-400">
                       {player.solved}
@@ -267,57 +271,62 @@ export default function HomePage() {
                 ))}
               </ul>
             </div>
-            {user?.role === "admin" && <AdminControlPanel />}
-            <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800">
-              <h2 className="text-xl font-bold mb-3 border-b border-purple-700 pb-2">
-                Game Info
-              </h2>
-              <div className="space-y-2 text-sm">
-                <p>
-                  <strong>Topic:</strong>{" "}
-                  <span className="text-cyan-300">{gameSettings.topic}</span>
-                </p>
-                <p>
-                  <strong>Difficulty:</strong>{" "}
-                  <span className="text-cyan-300">{gameSettings.rarity}</span>
-                </p>
-                <p>
-                  <strong>Language:</strong>{" "}
-                  <span className="text-cyan-300">{gameSettings.language}</span>
-                </p>
-              </div>
-            </div>
-            <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800">
-              <h2 className="text-xl font-bold mb-4 border-b border-purple-700 pb-2">
-                Vote to Skip
-              </h2>
-              <div className="space-y-3">
-                <p className="text-sm text-gray-400">
-                  If 50% of players vote, the round will restart.
-                </p>
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-base font-medium text-indigo-400">
-                      Votes
+
+            <div className="space-y-8 overflow-y-auto flex-grow">
+              {user?.role === "admin" && <AdminControlPanel />}
+              <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800">
+                <h2 className="text-xl font-bold mb-3 border-b border-purple-700 pb-2">
+                  Game Info
+                </h2>
+                <div className="space-y-2 text-sm">
+                  <p>
+                    <strong>Topic:</strong>{" "}
+                    <span className="text-cyan-300">{gameSettings.topic}</span>
+                  </p>
+                  <p>
+                    <strong>Difficulty:</strong>{" "}
+                    <span className="text-cyan-300">{gameSettings.rarity}</span>
+                  </p>
+                  <p>
+                    <strong>Language:</strong>{" "}
+                    <span className="text-cyan-300">
+                      {gameSettings.language}
                     </span>
-                    <span className="text-sm font-medium text-indigo-400">
-                      {voteState.currentVotes} / {requiredVotes}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2.5">
-                    <div
-                      className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
-                      style={{ width: `${votePercentage}%` }}
-                    ></div>
-                  </div>
+                  </p>
                 </div>
-                <button
-                  onClick={handleVoteClick}
-                  disabled={!isConnected || !currentQuestion}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 hover:brightness-110 rounded-md transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
-                >
-                  Vote to Skip Question
-                </button>
+              </div>
+              <div className="bg-[#1c1c2b] p-6 rounded-3xl shadow-[0_0_30px_rgba(128,0,255,0.3)] border border-purple-800">
+                <h2 className="text-xl font-bold mb-4 border-b border-purple-700 pb-2">
+                  Vote to Skip
+                </h2>
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-400">
+                    If 50% of players vote, the round will restart.
+                  </p>
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-base font-medium text-indigo-400">
+                        Votes
+                      </span>
+                      <span className="text-sm font-medium text-indigo-400">
+                        {voteState.currentVotes} / {requiredVotes}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2.5">
+                      <div
+                        className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
+                        style={{ width: `${votePercentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleVoteClick}
+                    disabled={!isConnected || !currentQuestion}
+                    className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 hover:brightness-110 rounded-md transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                  >
+                    Vote to Skip Question
+                  </button>
+                </div>
               </div>
             </div>
           </aside>
