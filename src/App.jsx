@@ -14,6 +14,8 @@ import RankPage from "./pages/RankPage";
 import { SocketProvider } from "./contexts/SocketContext";
 import { fetchUser } from "./features/appSlice";
 
+// This route guard ensures the user is LOGGED IN.
+// It protects routes that require a session, including the verification page itself.
 const ProtectedRoute = () => {
   const { isAuthenticated } = useSelector((state) => state.app);
 
@@ -21,6 +23,7 @@ const ProtectedRoute = () => {
     return <Navigate to="/" replace />;
   }
 
+  // If logged in, provide the SocketContext and render the child routes
   return (
     <SocketProvider>
       <Outlet />
@@ -28,10 +31,25 @@ const ProtectedRoute = () => {
   );
 };
 
+// This NEW route guard ensures the user is VERIFIED.
+// It protects routes that should only be accessible after email verification.
+const VerifiedRoute = () => {
+  const { user } = useSelector((state) => state.app);
+
+  // If the user object exists but isVerified is false, redirect to the verification page.
+  if (user && !user.isVerified) {
+    return <Navigate to="/verify" replace />;
+  }
+
+  // If verified, allow access to the intended route (e.g., /home, /rank).
+  return <Outlet />;
+};
+
 function App() {
   const dispatch = useDispatch();
-
-  const { isAuthenticated, isInitializing } = useSelector((state) => state.app);
+  const { isAuthenticated, isInitializing, user } = useSelector(
+    (state) => state.app
+  );
 
   useEffect(() => {
     dispatch(fetchUser());
@@ -59,6 +77,8 @@ function App() {
     <>
       <ToastContainer theme="dark" />
       <Routes>
+        {/* --- Public Routes --- */}
+        {/* These routes are for users who are NOT logged in. */}
         <Route
           path="/"
           element={!isAuthenticated ? <LoginPage /> : <Navigate to="/home" />}
@@ -82,12 +102,24 @@ function App() {
           }
         />
 
+        {/* --- Protected Routes (Require Login) --- */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/home" element={<HomePage />} />
-          <Route path="/rank" element={<RankPage />} />
-          <Route path="/verify" element={<VerifyPage />} />
+          {/* This route is for logged-in but potentially unverified users */}
+          <Route
+            path="/verify"
+            element={
+              user && user.isVerified ? <Navigate to="/home" /> : <VerifyPage />
+            }
+          />
+
+          {/* --- Verified Routes (Require Login AND Verification) --- */}
+          <Route element={<VerifiedRoute />}>
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/rank" element={<RankPage />} />
+          </Route>
         </Route>
 
+        {/* --- Catch-all Route --- */}
         <Route
           path="*"
           element={<Navigate to={isAuthenticated ? "/home" : "/"} />}
