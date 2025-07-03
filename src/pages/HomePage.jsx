@@ -264,9 +264,6 @@ export default function HomePage() {
                       {player.username}
                       {player.role === "admin" && " �"}
                     </span>
-                    <span className="font-semibold text-green-400">
-                      {player.solved}
-                    </span>
                   </li>
                 ))}
               </ul>
