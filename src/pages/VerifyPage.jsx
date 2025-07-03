@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 
 import { handleVerifyCode, sendVerificationCode } from "../features/authSlice";
+import { fetchUser } from "../features/appSlice";
 
 export default function VerifyPage() {
   const [verifyCode, setVerifyCode] = useState("");
@@ -27,6 +28,7 @@ export default function VerifyPage() {
 
     try {
       await dispatch(handleVerifyCode({ verifyCode })).unwrap();
+      await dispatch(fetchUser());
       navigate("/home");
     } catch (error) {
       console.error("Error verifying code:", error);
