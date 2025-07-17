@@ -2,7 +2,8 @@ import axios from "axios";
 
 const axiosInstance = axios.create({
   // baseURL: "http://localhost:3000",
-  baseURL: "https://quizapi.hizkiajonathanbudiana.my.id",
+  //baseURL: "https://quizapi.hizkiajonathanbudiana.my.id",
+  baseURL: "https://quizrushapi.hizkiajonathanbudiana.my.id",
   withCredentials: true,
 });
 
